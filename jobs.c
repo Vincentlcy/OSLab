@@ -15,7 +15,7 @@ struct job {
     int pid;
     char cmd[200];
     struct job *next;
-} 
+}; 
 
 int main(void) {
 
@@ -42,7 +42,7 @@ int main(void) {
 
     /*get the time at the start*/
     struct tms times_begin;
-    clock_t time_begin = times($times_begin);
+    clock_t time_begin = times(&times_begin);
 
     while (1) {
         char command[20], pgm[128], arg1[20], arg2[20], arg3[20], arg4[20];
@@ -55,18 +55,17 @@ int main(void) {
             scanf("%*[^\n]"); /*skip rest of the line*/
 
             /*go through link list and print all*/
-            struct job job_i;
-            job_i = job1;
+            struct job job_i = job1;
             while (job_i.next != NULL) {
                 printf("%d: (pid=  %d, cmd= %s\n", job_i.index, job_i.pid, job_i.cmd);
-                job_i = job_i.next;
+                job_i = *job_i.next;
             }
             continue;
         }
         else if (strcmp(command, "run")) {
             struct job job_i = job1;
             while (job_i.next != NULL) {
-                *job_i = job_i.next;
+                job_i = *job_i.next;
             }
 
             if (job_i.index == 32) {
@@ -122,14 +121,15 @@ int main(void) {
             } else {
                 /*update the link list*/
                 job_i.pid = fpid;
-                job_i.cmd =strcat(pgm,argv);
+                strcat(job_i.cmd,pgm);
+		strcat(job_i.cmd,argv);
                 struct job job_next = {};
                 job_next.index = job_i.index+1;
                 *job_i.next = job_next;
             }
             continue;
         }
-        else if (strcmp(command, "suspend"){
+        else if (strcmp(command, "suspend")){
             /*get the pid*/
             int job_num;
             scanf("%d", &job_num);
@@ -140,7 +140,7 @@ int main(void) {
                 if (job_i.index == job_num){
                     break;
                 }
-                job_i = job_i.next;
+                job_i = *job_i.next;
             }
 
             if (job_i.index != job_num) {
@@ -152,7 +152,7 @@ int main(void) {
             kill(job_i.pid, SIGSTOP);
             continue;
         }
-        else if (strcmp(command, "resume"){
+        else if (strcmp(command, "resume")){
             /*get the pid*/
             int job_num;
             scanf("%d", &job_num);
@@ -164,7 +164,7 @@ int main(void) {
                 if (job_i.index == job_num){
                     break;
                 }
-                job_i = job_i.next;
+                job_i = *job_i.next;
             }
 
             if (job_i.index != job_num) {
@@ -195,32 +195,31 @@ int main(void) {
                 printf("Fail to find the process.\n");
                 continue;
             }
-
             /*send single*/
             kill(job_i.pid, SIGKILL);
             continue;
-        }
+	  }
         else if (strcmp(command, "exit"){
             scanf("%*[^\n]"); /*skip rest of the line*/
             break;
-        }
+	  }
         else if (strcmp(command, "quit"){
             scanf("%*[^\n]"); /*skip rest of the line*/
             printf("Exit without kill child processes!\n");
             return;
-        }
+	  }
         else{
             printf("Fail to recgnized the command");
             continue;
         }
-    }
+	  }
     
     struct job job_i;
     job_i = job1;
     while (job_i.next != NULL) {
         kill(job_i.pid, SIGNKILL);
         printf("job %d terminated\n", job_i.pid);
-        job_i = job_i.next;
+        &job_i = job_i.next;
     }
 
     /*get the time at the end*/
@@ -229,6 +228,6 @@ int main(void) {
 
     printf("real: %d sec.\nuser: %d sec.\nsys: %d sec.\n", (time_begin-time_end)/CLOCKS_PER_SEC,(times_begin.tms_stime-times_begin.tms_stime)/CLOCKS_PER_SEC);
     printf("child user: %d sec.\nchild sys: %d sec.\n",(times_begin.tms_cutime-times_begin.tms_cutime)/CLOCKS_PER_SEC,(times_begin.tms_cstime-times_begin.tms_cstime)/CLOCKS_PER_SEC);
-
+    
     return 0;
 }
