@@ -212,7 +212,7 @@ int main(void) {
             printf("Fail to recgnized the command");
             continue;
         }
-	  }
+    }
     
     struct job job_i;
     job_i = job1;
