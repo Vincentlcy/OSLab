@@ -44,7 +44,7 @@ int main(void) {
     clock_t time_begin = times($times_begin);
 
     while (1) {
-        char command, pgm[128], arg1[20], arg2[20], arg3[20], arg4[20];
+        char command, pgm, arg1[20], arg2[20], arg3[20], arg4[20];
         /*loop and wait for user command*/
         printf("a1jobs[%d]:", pid);
         scanf("%s ", &command); /*Just the command*/
