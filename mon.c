@@ -101,26 +101,54 @@ int find_child(int ppid, FILE *fp, struct process *pros) {
 
     while (fgets(tep,256,fp)!=NULL) {
         /*scanf the pid*/
-        fscanf(tep, " %d %d", &pid_tem, &ppid_tem);
-	fscanf(tep, "%s",cmd);
-	printf("%d %s\n", pid_tem,cmd);
-        fscanf(fp, "%*[^\n]");
+        char *token;
+        char *s = " ";
+        char *sp = NULL;
+        token = strtok_r(tep, s, &sp);
+        token = strtok_r(NULL, s, &sp);
+        if (token != NULL) {
+            strcpy(cmd,token);
+            token = strtok_r(NULL, s, &sp);
+        }
+        if (token != NULL) {
+            strcpy(arg1,token);
+            count += 1;
+            token = strtok_r(NULL, s, &sp);
+        }
+        if (token != NULL) {
+            strcpy(arg2,token);
+            count += 1;
+            token = strtok_r(NULL, s, &sp);
+        }
+        if (token != NULL) {
+            strcpy(arg3,token);
+            count += 1;
+            token = strtok_r(NULL, s, &sp);
+        }
+        if (token != NULL) {
+            strcpy(arg4,token);
+            count += 1;
+            token = strtok_r(NULL, s, &sp);
+        }
+        if (token != NULL) {
+            printf("Too many argument!\n");
+        }
 	
         if (pid_tem == ppid) {
 	    target=1;
-	}
+	    }
 
         if (ppid_tem == ppid) {
 
             /*check array full*/
             if (pros[i].pid) {
                 if (realloc(pros, 2*i*sizeof(struct process))==NULL){
-		    exit(-1);
-		}
+		            exit(-1);
+		        }
                 i++;
             }
             pros[i].pid = pid_tem;
-	    strcpy(pros[i].cmd,cmd);
+	        strcpy(pros[i].cmd,cmd);
         } 
     }
     return target;
