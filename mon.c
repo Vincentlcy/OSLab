@@ -48,6 +48,7 @@ int main(int argc,char *argv[]) {
     int counter = 1;
     int pid = getpid();
     struct process *pros;
+    int target = 0;
 
     while (1) {
         printf("almon [counter= %d, pid= %d, target_pid= %d, interval= %d sec]:\n", counter, pid, ppid, interval);
@@ -61,18 +62,23 @@ int main(int argc,char *argv[]) {
         }
 
         /*Find first child*/
-        int target = find_child(ppid, fp, pros);
+        int t = find_child(ppid, fp, pros);
+	target+=t; 
+	if (t==0 && target==0){
+	    printf("No such process\n");
+	    return 1;
+	}
 	
         printf("[");
         for (int i=0;;i++) {
-            if (pros[i].pid = 0) {break;}
+            if (pros[i].pid == 0) {break;}
             find_child(pros[i].pid, fp, pros);
             printf("%d:[%d,%s]",i,pros[i].pid,pros[i].cmd);
         }
-        printf("]\n");
+        printf("], \n");
 
         /*terminated*/
-        if (target) {
+        if (target>0 && t==0) {
             break;
         }
 	pclose(fp);
@@ -81,7 +87,7 @@ int main(int argc,char *argv[]) {
 
     printf("almon: target appears to have terminated; cleaning up\n");
     for (int i=0;;i++) {
-            if (pros[i].pid = 0) {break;}
+            if (pros[i].pid == 0) {break;}
             kill(pros[i].pid, SIGKILL);
             printf("terminating [%d,%s]\n",pros[i].pid,pros[i].cmd);
     }
@@ -98,45 +104,26 @@ int find_child(int ppid, FILE *fp, struct process *pros) {
     char cmd[100];
     int target = 0;
     char tep[1024];
-
+    fgets(tep,256,fp);
     while (fgets(tep,256,fp)!=NULL) {
         /*scanf the pid*/
         char *token;
         char *s = " ";
         char *sp = NULL;
         token = strtok_r(tep, s, &sp);
-        token = strtok_r(NULL, s, &sp);
-        if (token != NULL) {
-            strcpy(cmd,token);
-            token = strtok_r(NULL, s, &sp);
-        }
-        if (token != NULL) {
-            strcpy(arg1,token);
-            count += 1;
-            token = strtok_r(NULL, s, &sp);
-        }
-        if (token != NULL) {
-            strcpy(arg2,token);
-            count += 1;
-            token = strtok_r(NULL, s, &sp);
-        }
-        if (token != NULL) {
-            strcpy(arg3,token);
-            count += 1;
-            token = strtok_r(NULL, s, &sp);
-        }
-        if (token != NULL) {
-            strcpy(arg4,token);
-            count += 1;
-            token = strtok_r(NULL, s, &sp);
-        }
-        if (token != NULL) {
-            printf("Too many argument!\n");
-        }
-	
+  	token = strtok_r(NULL, s, &sp);
+	pid_tem = strtol(token,NULL,10);
+  	token = strtok_r(NULL, s, &sp);
+	ppid_tem = strtol(token,NULL,10);
+    	token = strtok_r(NULL, s, &sp);
+ 	token = strtok_r(NULL, s, &sp);
+ 	token = strtok_r(NULL, s, &sp);
+	token = strtok_r(token, "\n", &sp);
+	strcpy(cmd,token);
+
         if (pid_tem == ppid) {
-	    target=1;
-	    }
+	    target = 1; 
+	}
 
         if (ppid_tem == ppid) {
 
@@ -149,6 +136,7 @@ int find_child(int ppid, FILE *fp, struct process *pros) {
             }
             pros[i].pid = pid_tem;
 	        strcpy(pros[i].cmd,cmd);
+		i++;
         } 
     }
     return target;
