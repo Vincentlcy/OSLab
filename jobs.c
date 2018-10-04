@@ -11,21 +11,21 @@
 # include <sys/resource.h>
 # include <errno.h>
 # define MAX_JOBS 32
-/*# define CLOCKS_PER_SEC 1000000l*/
 
 struct job {
     int index;
     int pid;
     char cmd[200];
-    struct job *next;
 }; 
 
 int main(void) {
 
     /*first job*/
-    struct job job1 = {
-        .index = 0,
-    };
+    struct job jobs[32];
+    for (int i=0;i<32;i++) {
+        jobs[i].index = i;
+        jobs[i].pid = 0;
+    }
 
     pid_t pid = getpid();
     int text_return;
@@ -51,67 +51,68 @@ int main(void) {
         char command[20], pgm[256], arg1[20], arg2[20], arg3[20], arg4[20];
         /*loop and wait for user command*/
         printf("a1jobs[%d]:",pid);
-        scanf("%s ", command); /*Just the command*/
+        scanf("%s", command); /*Just the command*/
 
         /*fix the case*/
         if (strcmp(command, "list")==0) {
-	    printf("list all process\n");
             scanf("%*[^\n]"); /*skip rest of the line*/
 
-            /*go through link list and print all*/
-            struct job job_i = job1;
-	    printf("I have a pen%d\n",job_i.next==NULL);
-            while (job_i.next != NULL) {
-		printf("i have an apple\n");
-                printf("%d: (pid=  %d, cmd= %s\n", job_i.index, job_i.pid, job_i.cmd);
-                job_i = *job_i.next;
+            /*go through array and print all*/
+            for (int i=0;i<32;i++) {
+                if (jobs[i].pid == 0) {
+                    break;
+                }
+                printf("%d: (pid=    %d,  cmd=  %s\n", jobs[i].index, jobs[i].pid, jobs[i].cmd);
             }
             continue;
         }
         else if (strcmp(command, "run")==0) {
-            struct job job_i = job1;
-            while (job_i.next != NULL) {
-                job_i = *job_i.next;
+            int i;
+            /*get the index of empty*/
+            for (i=0;i<32;i++) {
+                if (jobs[i].pid == 0) {
+                    break;
+                }
             }
-
-            if (job_i.index == 32) {
+            /*check full or not*/
+            if (jobs[31].pid) {
                 printf("Sorry jobs have arrive the max.\n");
                 continue;
             }
 
             /*get pgm and args*/
             scanf("%[^\n]",pgm);
-	    char cmd[256];
-	    strcpy(cmd,pgm);
+	        char cmd[256];
+	        strcpy(cmd,pgm);
 
             /*divied argment with program name*/
             char *token;
-	    int count = 0;
-	    char *s = " ";
-	    char *sp = NULL;
-            token = strtok_r(cmd, s, &sp);
+	        int count = 0;
+	        char *s = " ";
+	        char *sp = NULL;
+            token = strtok_r(pgm, s, &sp);
             if (token != NULL) {
                 strcpy(pgm,token);
                 token = strtok_r(NULL, s, &sp);
             }
             if (token != NULL) {
                 strcpy(arg1,token);
-		count += 1;
+		        count += 1;
                 token = strtok_r(NULL, s, &sp);
             }
             if (token != NULL) {
                 strcpy(arg2,token);
-		count += 1;
+		        count += 1;
                 token = strtok_r(NULL, s, &sp);
             }
             if (token != NULL) {
                 strcpy(arg3,token);
-		count += 1;
+		        count += 1;
                 token = strtok_r(NULL, s, &sp);
             }
             if (token != NULL) {
                 strcpy(arg4,token);
-		count += 1;
+		        count += 1;
                 token = strtok_r(NULL, s, &sp);
             }
             if (token != NULL) {
@@ -125,33 +126,37 @@ int main(void) {
                 continue;
             } else if (fpid == 0) {
                 /*child process*/
-		int i;
-		if (count == 4) {
-		    i = execlp(pgm,arg1,arg2,arg3,arg4,NULL);
-		} else if (count == 3) {
-		    i = execlp(pgm,arg1,arg2,arg3,NULL);
-		} else if (count == 2) {
-		    i = execlp(pgm,arg1,arg2,NULL);
-		} else if (count == 1) {
-		    i = execlp(pgm,arg1,(char*) NULL);
-		} else{
-		    i = execlp(pgm,pgm,(char*) NULL);
-		}
-                if (i < 0){
-		    printf("%s, %s, %s, %s, %d, %s\n",arg1,arg2,arg3,arg4,count,pgm);
-		    printf("Fail to run execv: %d\n.",errno);
-                    kill(fpid, SIGKILL);
-		    waitpid(fpid,NULL,0);
-                    continue;
+		        if (count == 4) {
+		            execlp(pgm,pgm,arg1,arg2,arg3,arg4,NULL);
+		        } else if (count == 3) {
+		            execlp(pgm,pgm,arg1,arg2,arg3,NULL);
+		        } else if (count == 2) {
+		            execlp(pgm,pgm,arg1,arg2,NULL);
+		        } else if (count == 1) {
+		            execlp(pgm,pgm,arg1,NULL);
+		        } else{
+		            execlp(pgm,pgm,NULL);
+		        }
+                /*quesion here
+                /*
+                /**/
+                if (errno) {
+		            printf("Fail to run execv: %d\n",errno);
+                    _exit(-1);
+                    errno = 0;
                 }
-            } else {
+            } else if (fpid > 0){
                 /*update the link list*/
-		printf("father\n");
-                job_i.pid = fpid;
-		strcpy(job_i.cmd,cmd);
-                struct job job_next = {};
-                job_next.index = job_i.index+1;
-                *job_i.next = job_next;
+                //lisprintf("%s, %s, %s, %s, %d, %s\n",arg1,arg2,arg3,arg4,count,pgm);
+                if (errno) {
+		            printf("Fail to run execv: %d\n",errno);
+                    kill(fpid, SIGKILL);
+		            waitpid(fpid,NULL,0);
+                    errno = 0;
+                } else {
+                    jobs[i].pid = fpid;
+		            strcpy(jobs[i].cmd,cmd);
+                }
             }
             continue;
         }
@@ -161,21 +166,13 @@ int main(void) {
             scanf("%d", &job_num);
             scanf("%*[^\n]"); /*skip rest of the line*/
 
-            struct job job_i = job1;
-            while (job_i.next != NULL) {
-                if (job_i.index == job_num){
-                    break;
-                }
-                job_i = *job_i.next;
-            }
-
-            if (job_i.index != job_num) {
-                printf("Fail to find the process.\n");
+            if (job_num < 0 || job_num > 31 || jobs[job_num].pid == 0) {
+                printf("Fail to find the process\n");
                 continue;
             }
 
-            /*send single*/
-            kill(job_i.pid, SIGSTOP);
+            kill(jobs[job_num].pid, SIGSTOP);
+            
             continue;
         }
         else if (strcmp(command, "resume")==0){
@@ -184,22 +181,13 @@ int main(void) {
             scanf("%d", &job_num);
             scanf("%*[^\n]"); /*skip rest of the line*/
             
-            struct job job_i;
-            job_i = job1;
-            while (job_i.next != NULL) {
-                if (job_i.index == job_num){
-                    break;
-                }
-                job_i = *job_i.next;
-            }
-
-            if (job_i.index != job_num) {
-                printf("Fail to find the process.\n");
+            if (job_num < 0 || job_num > 31 || jobs[job_num].pid == 0) {
+                printf("Fail to find the process\n");
                 continue;
             }
 
             /*send single*/
-            kill(job_i.pid, SIGCONT);
+            kill(jobs[job_num].pid, SIGCONT);
             continue;
         }
         else if (strcmp(command, "terminate")==0) {
@@ -208,54 +196,42 @@ int main(void) {
             scanf("%d", &job_num);
             scanf("%*[^\n]"); /*skip rest of the line*/
             
-            struct job job_i;
-            job_i = job1;
-            while (job_i.next != NULL) {
-                if (job_i.index == job_num){
-                    break;
-                }
-                job_i = *job_i.next;
-            }
-
-            if (job_i.index != job_num) {
-                printf("Fail to find the process.\n");
+            if (job_num < 0 || job_num > 31 || jobs[job_num].pid == 0) {
+                printf("Fail to find the process\n");
                 continue;
             }
             /*send single*/
-            kill(job_i.pid, SIGKILL);
-	    waitpid(job_i.pid,NULL,0);
+            kill(jobs[job_num].pid, SIGKILL);
+	        waitpid(jobs[job_num].pid,NULL,0);
             continue;
-	  }
+	    }
         else if (strcmp(command, "exit")==0){
             scanf("%*[^\n]"); /*skip rest of the line*/
+            for (int i=0;i<32;i++) {
+                if (jobs[i].pid == 0) {
+                    break;
+                }
+                kill(jobs[i].pid, SIGKILL);
+	            waitpid(jobs[i].pid,NULL,0);
+            }
             break;
-	  }
+	    }
         else if (strcmp(command, "quit")==0){
             scanf("%*[^\n]"); /*skip rest of the line*/
             printf("Exit without kill child processes!\n");
-            return 0;
-	  }
-        else{
-            printf("Fail to recgnized the command");
+            break;
+	    } else {
+            printf("Fail to recgnized the command\n");
             continue;
         }
-    }
-    
-    struct job job_i;
-    job_i = job1;
-    while (job_i.next != NULL) {
-        kill(job_i.pid, SIGKILL);
-	waitpid(job_i.pid, NULL, 0);
-        printf("job %d terminated\n", job_i.pid);
-        job_i = *job_i.next;
     }
 
     /*get the time at the end*/
     struct tms times_end;
     clock_t time_end = times(&times_end);
 
-    printf("real: %ld sec.\nuser: %ld sec.\nsys: %ld sec.\n", (time_begin-time_end)/CLOCKS_PER_SEC,(times_begin.tms_utime-times_begin.tms_utime)/CLOCKS_PER_SEC,(times_begin.tms_stime-times_begin.tms_stime)/CLOCKS_PER_SEC);
-    printf("child user: %ld sec.\nchild sys: %ld sec.\n",(times_begin.tms_cutime-times_begin.tms_cutime)/CLOCKS_PER_SEC,(times_begin.tms_cstime-times_begin.tms_cstime)/CLOCKS_PER_SEC);
+    printf("real: %lf sec.\nuser: %lf sec.\nsys: %lf sec.\n", (double)(time_end-time_begin)/CLOCKS_PER_SEC,(double)(times_end.tms_utime-times_begin.tms_utime)/CLOCKS_PER_SEC,(double)(times_end.tms_stime-times_begin.tms_stime)/CLOCKS_PER_SEC);
+    printf("child user: %lf sec.\nchild sys: %lf sec.\n",((double)times_end.tms_cutime-times_begin.tms_cutime)/CLOCKS_PER_SEC,(double)(times_end.tms_cstime-times_begin.tms_cstime)/CLOCKS_PER_SEC);
     
     return 0;
 }
