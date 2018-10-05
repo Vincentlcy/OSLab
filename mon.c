@@ -63,11 +63,11 @@ int main(int argc,char *argv[]) {
         if ((fp = popen("ps -u $USER -o user,pid,ppid,state,start,cmd --sort start", "r")) == NULL) {
             printf("Error in open the pipeline");
         }
-        f = fp;
+        
 
         /*Find first layer child; t for target exist(1) or not(0)*/
         int t = find_child(ppid, fp, pros, 1);
-	    //fclose(fp);
+	    fclose(fp);
 	    if (t==0 && counter==2){
 	        printf("No such process\n");
 	        return 1;
@@ -77,12 +77,11 @@ int main(int argc,char *argv[]) {
         for (int i=0;;i++) {
             if (pros[i].pid == 0) {break;}
             /*open pipeline*/
-            //if ((fp = popen("ps -u $USER -o user,pid,ppid,state,start,cmd --sort start", "r")) == NULL) {
-            //    printf("Error in open the pipeline");
-	        //    fclose(fp);
-            //}
+            if ((fp = popen("ps -u $USER -o user,pid,ppid,state,start,cmd --sort start", "r")) == NULL) {
+                printf("Error in open the pipeline");
+	            fclose(fp);
+            }
             /*Find child for child*/
-            fp = f;
             find_child(pros[i].pid, fp, pros,0);
             printf("%d:[%d,%s], ",i,pros[i].pid,pros[i].cmd);
 	        fclose(fp);
@@ -94,7 +93,6 @@ int main(int argc,char *argv[]) {
             break;
         }
 
-        fclose(fp);
         sleep(interval);
     }
 
@@ -164,9 +162,20 @@ int find_child(int ppid, FILE *fp, struct process *pros, int print_key) {
 	        strcpy(pros[i].cmd,cmd);
 		    i++;
         }
-
-	    if (i > 0 && pid_tem == pros[i-1].pid) {
-	        check = 1; // if child still run
+	
+	/*Since target doesnot exist, the ppid for child tend to 1, the upper
+	 * check will not useable, so check each child that still run or not*/
+	if (target == 0 && print_key ==1) {
+	    for (int j=0;pros[j].pid!=0;j++) {
+	    	if (pid_tem == pros[j].pid) {
+		    pros[i].pid = pros[j].pid;
+		    strcpy(pros[i].cmd,pros[j].cmd);
+		    i++;
+		}
+	    }
+	}
+	    if (pid_tem == pros[0].pid) {
+		check =1; // check child exist or not
 	    }
     }
 
