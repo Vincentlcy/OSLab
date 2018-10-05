@@ -1,4 +1,6 @@
-/*Assignment1*/
+/*Assignment1           */
+/*All Copyright reserve */
+/*2018 OCT 4th          */
 # define _POSIX_SOURCE
 # include <sys/types.h>
 # include <stdio.h>
@@ -27,6 +29,7 @@ int main(void) {
         jobs[i].pid = 0;
     }
 
+    /*get self pdi*/
     pid_t pid = getpid();
     int text_return;
 
@@ -127,28 +130,29 @@ int main(void) {
             } else if (fpid == 0) {
                 /*child process*/
 		        if (count == 4) {
-		            execlp(pgm,pgm,arg1,arg2,arg3,arg4,NULL);
+		            execlp(pgm,pgm,arg1,arg2,arg3,arg4,(char*) NULL);
 		        } else if (count == 3) {
-		            execlp(pgm,pgm,arg1,arg2,arg3,NULL);
+		            execlp(pgm,pgm,arg1,arg2,arg3,(char*) NULL);
 		        } else if (count == 2) {
-		            execlp(pgm,pgm,arg1,arg2,NULL);
+		            execlp(pgm,pgm,arg1,arg2,(char*) NULL);
 		        } else if (count == 1) {
-		            execlp(pgm,pgm,arg1,NULL);
+		            execlp(pgm,pgm,arg1,(char*) NULL);
 		        } else{
-		            execlp(pgm,pgm,NULL);
+		            execlp(pgm,pgm,(char*) NULL);
 		        }
                 /*quesion here*/
+                
                 if (errno) {
+                    /*child exec fail, suicide*/
 		            printf("Fail to run execv: %d; child suicide.",errno);
                     _exit(-1);
                     errno = 0;
                 }
             } else if (fpid > 0){
                 /*update the link list*/
-       
-                    jobs[i].pid = fpid;
-		            strcpy(jobs[i].cmd,cmd);
-	    }
+                jobs[i].pid = fpid;
+		        strcpy(jobs[i].cmd,cmd);
+	        }
             continue;
         }
         else if (strcmp(command, "suspend")==0){
