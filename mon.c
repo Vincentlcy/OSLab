@@ -18,7 +18,7 @@ struct process {
     char cmd[128];
 };
 
-int find_child(int ppid, FILE *fp, struct process *pros);
+int find_child(int ppid, FILE *fp, struct process *pros, int print_key);
 
 int main(int argc,char *argv[]) {
     int interval = 3;
@@ -49,20 +49,21 @@ int main(int argc,char *argv[]) {
     int pid = getpid();
     struct process *pros;
     int target = 0;
+    pros = calloc(20, sizeof(struct process));
 
     while (1) {
         printf("almon [counter= %d, pid= %d, target_pid= %d, interval= %d sec]:\n", counter, pid, ppid, interval);
 
         FILE *fp;
-	pros = calloc(20, sizeof(struct process));
-         
+	
         /*open pipeline*/
         if ((fp = popen("ps -u $USER -o user,pid,ppid,state,start,cmd --sort start", "r")) == NULL) {
             printf("Error in open the pipeline");
         }
 
         /*Find first child*/
-        int t = find_child(ppid, fp, pros);
+        int t = find_child(ppid, fp, pros, 1);
+	fclose(fp);
 	target+=t; 
 	if (t==0 && target==0){
 	    printf("No such process\n");
@@ -72,16 +73,21 @@ int main(int argc,char *argv[]) {
         printf("[");
         for (int i=0;;i++) {
             if (pros[i].pid == 0) {break;}
-            find_child(pros[i].pid, fp, pros);
-            printf("%d:[%d,%s]",i,pros[i].pid,pros[i].cmd);
+            /*open pipeline*/
+            if ((fp = popen("ps -u $USER -o user,pid,ppid,state,start,cmd --sort start", "r")) == NULL) {
+            printf("Error in open the pipeline");
+	    fclose(fp);
         }
-        printf("], \n");
+            find_child(pros[i].pid, fp, pros,0);
+            printf("%d:[%d,%s], ",i,pros[i].pid,pros[i].cmd);
+	    fclose(fp);
+        }
+        printf("]\n");
 
         /*terminated*/
         if (target>0 && t==0) {
             break;
         }
-	pclose(fp);
         sleep(interval);
     }
 
@@ -91,12 +97,13 @@ int main(int argc,char *argv[]) {
             kill(pros[i].pid, SIGKILL);
             printf("terminating [%d,%s]\n",pros[i].pid,pros[i].cmd);
     }
+    free(pros);
     printf("exiting almon\n");
     return 0;
 }
 
 
-int find_child(int ppid, FILE *fp, struct process *pros) {
+int find_child(int ppid, FILE *fp, struct process *pros, int print_key) {
     int pid_tem;
     int ppid_tem;
     int i = 0;
@@ -104,9 +111,13 @@ int find_child(int ppid, FILE *fp, struct process *pros) {
     char cmd[100];
     int target = 0;
     char tep[1024];
+    int check = 0;
+
     fgets(tep,256,fp);
+    if (print_key) {printf("%s\n",tep);}
     while (fgets(tep,256,fp)!=NULL) {
         /*scanf the pid*/
+	if (print_key) {printf("%s\n",tep);}
         char *token;
         char *s = " ";
         char *sp = NULL;
@@ -125,19 +136,32 @@ int find_child(int ppid, FILE *fp, struct process *pros) {
 	    target = 1; 
 	}
 
+	
         if (ppid_tem == ppid) {
 
-            /*check array full*/
-            if (pros[i].pid) {
-                if (realloc(pros, 2*i*sizeof(struct process))==NULL){
-		            exit(-1);
-		        }
-                i++;
-            }
-            pros[i].pid = pid_tem;
+           /*check array full*/
+            	if ((i+2)%20 == 0) {
+                    pros = realloc(pros, (i+22)*sizeof(struct process));
+                    i++;
+                }
+                pros[i].pid = pid_tem;
 	        strcpy(pros[i].cmd,cmd);
 		i++;
-        } 
+        }
+	if (i > 0 && pid_tem == pros[i-1].pid) {
+	    check = 1;
+	}
     }
+    if (i > 0) {
+	pros[i].pid =0;
+    }
+    
+    if (check == 0&& i>0) {
+	pros[0].pid = 0;
+    }
+    if (check == 0 && target == 0) {
+	pros[0].pid = 0;
+    }
+
     return target;
 }

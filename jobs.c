@@ -137,27 +137,18 @@ int main(void) {
 		        } else{
 		            execlp(pgm,pgm,NULL);
 		        }
-                /*quesion here
-                /*
-                /**/
+                /*quesion here*/
                 if (errno) {
-		            printf("Fail to run execv: %d\n",errno);
+		            printf("Fail to run execv: %d; child suicide.",errno);
                     _exit(-1);
                     errno = 0;
                 }
             } else if (fpid > 0){
                 /*update the link list*/
-                //lisprintf("%s, %s, %s, %s, %d, %s\n",arg1,arg2,arg3,arg4,count,pgm);
-                if (errno) {
-		            printf("Fail to run execv: %d\n",errno);
-                    kill(fpid, SIGKILL);
-		            waitpid(fpid,NULL,0);
-                    errno = 0;
-                } else {
+       
                     jobs[i].pid = fpid;
 		            strcpy(jobs[i].cmd,cmd);
-                }
-            }
+	    }
             continue;
         }
         else if (strcmp(command, "suspend")==0){
